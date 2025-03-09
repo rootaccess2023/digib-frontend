@@ -1,7 +1,6 @@
-import React from "react";
 import LoginForm from "../components/auth/LoginForm";
 
-const LoginPage: React.FC = () => {
+const LoginPage = () => {
   return (
     <div className="min-h-screen w-full bg-gray-100 flex flex-col justify-center">
       <div className="w-full max-w-md mx-auto px-4">

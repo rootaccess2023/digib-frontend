@@ -1,14 +1,14 @@
-// src/context/AuthContext.tsx
-import React, {
+import {
   createContext,
   useContext,
   useState,
   useEffect,
   ReactNode,
 } from "react";
-import { User, AuthState } from "../types/auth";
+import { AuthState } from "../types/auth";
 import toast from "react-hot-toast";
 
+// Type Declarations
 interface AuthContextProps {
   authState: AuthState;
   login: (email: string, password: string) => Promise<void>;
@@ -35,7 +35,7 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [authState, setAuthState] = useState<AuthState>({
     isAuthenticated: false,
     user: null,
@@ -109,9 +109,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw new Error("No token received");
       }
 
+      // Store auth token to localStorage
       localStorage.setItem("auth_token", token);
 
-      // Add success toast
+      // Success toast
       toast.success("Logged in successfully!");
 
       setAuthState({
@@ -163,9 +164,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw new Error("No token received");
       }
 
+      // Store auth token to localStorage
       localStorage.setItem("auth_token", token);
 
-      // Add success toast
+      // Success toast
       toast.success("Account created successfully!");
 
       setAuthState({
@@ -204,9 +206,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw new Error("Logout failed");
       }
 
+      // Store auth token to localStorage
       localStorage.removeItem("auth_token");
 
-      // Add success toast
+      // Success toast
       toast.success("Logged out successfully!");
 
       setAuthState({

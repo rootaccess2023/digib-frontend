@@ -16,7 +16,7 @@ const App: React.FC = () => {
   return (
     <AuthProvider>
       <Router>
-        {/* Add the Toaster component here */}
+        {/* React Hot Toast Component */}
         <Toaster
           position="top-right"
           toastOptions={{
@@ -31,10 +31,14 @@ const App: React.FC = () => {
           {/* Public routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+
           {/* Protected routes */}
+          {/* Add routes that needs authentication */}
+
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<DashboardPage />} />
           </Route>
+
           {/* Redirect to login by default */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
