@@ -11,6 +11,7 @@ A modern React application built with TypeScript, Vite, and TailwindCSS that imp
 - Protected routes
 - User dashboard
 - Toast notifications using react-hot-toast
+- React Icons for enhanced UI elements
 
 ## Prerequisites
 
@@ -63,6 +64,39 @@ The application will be available at http://localhost:5173
 - **Signup Form**: New user registration
 - **Dashboard**: Protected area showing user information
 - **Protected Routes**: Routes that require authentication
+
+### UI Libraries
+
+The frontend uses several libraries to enhance the user experience:
+
+- **TailwindCSS** for utility-first styling
+- **React Hot Toast** for user-friendly notifications
+- **React Icons** for access to popular icon libraries including:
+  - Font Awesome
+  - Material Design
+  - Heroicons
+  - And many more
+
+Example of using icons:
+
+```jsx
+import { FiMail, FiLock } from "react-icons/fi";
+
+function LoginForm() {
+  return (
+    <form>
+      <div className="flex items-center">
+        <FiMail className="mr-2 text-gray-500" />
+        <input type="email" placeholder="Email" />
+      </div>
+      <div className="flex items-center">
+        <FiLock className="mr-2 text-gray-500" />
+        <input type="password" placeholder="Password" />
+      </div>
+    </form>
+  );
+}
+```
 
 ## Project Structure
 
