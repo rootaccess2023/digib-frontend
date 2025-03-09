@@ -1,54 +1,116 @@
-# React + TypeScript + Vite
+# React TypeScript Authentication Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern React application built with TypeScript, Vite, and TailwindCSS that implements JWT authentication.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- React with TypeScript and Vite for fast development
+- TailwindCSS for responsive styling
+- JWT-based authentication
+- Login and signup forms
+- Protected routes
+- User dashboard
 
-## Expanding the ESLint configuration
+## Prerequisites
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- Node.js 16.0.0 or higher
+- npm 8.0.0 or higher
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+## Setup
+
+1. Clone this repository
+
+```bash
+git clone https://github.com/yourusername/react-ts-auth-frontend.git
+cd react-ts-auth-frontend
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+2. Install dependencies
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
+```bash
+npm install
 ```
+
+3. Configure the backend API URL
+
+Create or edit the `.env` file in the root directory:
+
+```
+VITE_API_URL=http://localhost:3001
+```
+
+4. Start the development server
+
+```bash
+npm run dev
+```
+
+The application will be available at http://localhost:5173
+
+## Usage
+
+### Authentication Flow
+
+1. **Sign Up**: Create a new account using the signup form
+2. **Log In**: Access your account using the login form
+3. **Dashboard**: After successful authentication, you'll be redirected to the dashboard
+4. **Log Out**: Click the logout button to end your session
+
+### Components
+
+- **Login Form**: Email and password authentication
+- **Signup Form**: New user registration
+- **Dashboard**: Protected area showing user information
+- **Protected Routes**: Routes that require authentication
+
+## Project Structure
+
+```
+src/
+├── components/       # UI components
+│   ├── auth/         # Authentication-related components
+│   └── ...           # Other components
+├── context/          # React context providers
+├── pages/            # Page components
+├── types/            # TypeScript type definitions
+├── App.tsx           # Main application component
+└── main.tsx          # Entry point
+```
+
+## Building for Production
+
+```bash
+npm run build
+```
+
+The built files will be in the `dist` directory, ready to be deployed.
+
+## Development
+
+### Linting
+
+```bash
+npm run lint
+```
+
+### Type Checking
+
+```bash
+npm run typecheck
+```
+
+## Deployment
+
+1. Build the project
+
+```bash
+npm run build
+```
+
+2. Deploy the contents of the `dist` directory to your hosting provider
+
+Remember to update the API URL in the production environment.
+
+## License
+
+This project is open source and available under the [MIT License](LICENSE).
