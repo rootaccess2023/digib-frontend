@@ -10,6 +10,7 @@ A modern React application built with TypeScript, Vite, and TailwindCSS that imp
 - Login and signup forms
 - Protected routes
 - User dashboard
+- Toast notifications using react-hot-toast
 
 ## Prerequisites
 

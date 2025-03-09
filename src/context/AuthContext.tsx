@@ -7,6 +7,7 @@ import React, {
   ReactNode,
 } from "react";
 import { User, AuthState } from "../types/auth";
+import toast from "react-hot-toast";
 
 interface AuthContextProps {
   authState: AuthState;
@@ -110,6 +111,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       localStorage.setItem("auth_token", token);
 
+      // Add success toast
+      toast.success("Logged in successfully!");
+
       setAuthState({
         isAuthenticated: true,
         user: data.data,
@@ -161,6 +165,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       localStorage.setItem("auth_token", token);
 
+      // Add success toast
+      toast.success("Account created successfully!");
+
       setAuthState({
         isAuthenticated: true,
         user: data.data,
@@ -198,6 +205,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       localStorage.removeItem("auth_token");
+
+      // Add success toast
+      toast.success("Logged out successfully!");
 
       setAuthState({
         isAuthenticated: false,
