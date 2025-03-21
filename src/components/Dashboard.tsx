@@ -1,3 +1,4 @@
+// src/components/Dashboard.tsx
 import React from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -9,6 +10,10 @@ const Dashboard: React.FC = () => {
   const handleLogout = async () => {
     await logout();
     navigate("/login");
+  };
+
+  const navigateToAdminDashboard = () => {
+    navigate("/admin-portal");
   };
 
   if (!authState.isAuthenticated) {
@@ -31,7 +36,28 @@ const Dashboard: React.FC = () => {
           <p>
             <strong>User ID:</strong> {authState.user?.id}
           </p>
+          <p>
+            <strong>Role:</strong>{" "}
+            {authState.user?.admin ? (
+              <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
+                Admin
+              </span>
+            ) : (
+              <span>User</span>
+            )}
+          </p>
         </div>
+
+        {authState.user?.admin && (
+          <div className="mb-6">
+            <button
+              onClick={navigateToAdminDashboard}
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mr-4"
+            >
+              Go to Admin Dashboard
+            </button>
+          </div>
+        )}
 
         <button
           className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
