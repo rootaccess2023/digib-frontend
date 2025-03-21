@@ -1,21 +1,20 @@
-# React TypeScript Authentication Frontend
+# React TypeScript Frontend with Admin Role Management
 
-A modern React application built with TypeScript, Vite, and TailwindCSS that implements JWT authentication.
+A modern React application built with TypeScript, Vite, and TailwindCSS that implements JWT authentication with admin role management.
 
 ## Features
 
 - React with TypeScript and Vite for fast development
 - TailwindCSS for responsive styling
-- JWT-based authentication
-- Login and signup forms
-- Protected routes
-- User dashboard
+- JWT-based authentication with role management
+- Protected routes for both regular and admin users
+- Admin dashboard for user management
 - Toast notifications using react-hot-toast
-- React Icons for enhanced UI elements
+- Role-based UI components
 
 ## Prerequisites
 
-- Node.js 16.0.0 or higher
+- Node.js 18.0.0 or higher
 - npm 8.0.0 or higher
 
 ## Setup
@@ -23,8 +22,8 @@ A modern React application built with TypeScript, Vite, and TailwindCSS that imp
 1. Clone this repository
 
 ```bash
-git clone https://github.com/yourusername/react-ts-auth-frontend.git
-cd react-ts-auth-frontend
+git clone https://github.com/your-username/your-frontend-repo.git
+cd your-frontend-repo
 ```
 
 2. Install dependencies
@@ -33,15 +32,7 @@ cd react-ts-auth-frontend
 npm install
 ```
 
-3. Configure the backend API URL
-
-Create or edit the `.env` file in the root directory:
-
-```
-VITE_API_URL=http://localhost:3001
-```
-
-4. Start the development server
+3. Start the development server
 
 ```bash
 npm run dev
@@ -49,78 +40,70 @@ npm run dev
 
 The application will be available at http://localhost:5173
 
-## Usage
-
-### Authentication Flow
-
-1. **Sign Up**: Create a new account using the signup form
-2. **Log In**: Access your account using the login form
-3. **Dashboard**: After successful authentication, you'll be redirected to the dashboard
-4. **Log Out**: Click the logout button to end your session
-
-### Components
-
-- **Login Form**: Email and password authentication
-- **Signup Form**: New user registration
-- **Dashboard**: Protected area showing user information
-- **Protected Routes**: Routes that require authentication
-
-### UI Libraries
-
-The frontend uses several libraries to enhance the user experience:
-
-- **TailwindCSS** for utility-first styling
-- **React Hot Toast** for user-friendly notifications
-- **React Icons** for access to popular icon libraries including:
-  - Font Awesome
-  - Material Design
-  - Heroicons
-  - And many more
-
-Example of using icons:
-
-```jsx
-import { FiMail, FiLock } from "react-icons/fi";
-
-function LoginForm() {
-  return (
-    <form>
-      <div className="flex items-center">
-        <FiMail className="mr-2 text-gray-500" />
-        <input type="email" placeholder="Email" />
-      </div>
-      <div className="flex items-center">
-        <FiLock className="mr-2 text-gray-500" />
-        <input type="password" placeholder="Password" />
-      </div>
-    </form>
-  );
-}
-```
-
-## Project Structure
+## Application Structure
 
 ```
 src/
-├── components/       # UI components
-│   ├── auth/         # Authentication-related components
-│   └── ...           # Other components
-├── context/          # React context providers
-├── pages/            # Page components
-├── types/            # TypeScript type definitions
-├── App.tsx           # Main application component
-└── main.tsx          # Entry point
+├── components/           # UI components
+│   ├── admin/            # Admin-specific components
+│   ├── auth/             # Authentication components
+│   └── ...               # Other components
+├── context/              # React context providers
+│   └── AuthContext.tsx   # Authentication context
+├── pages/                # Page components
+├── services/             # API service classes
+│   └── AdminService.ts   # Admin API interactions
+├── types/                # TypeScript type definitions
+├── App.tsx               # Main application component
+└── main.tsx              # Entry point
 ```
 
-## Building for Production
+## User Roles
+
+The application supports two user roles:
+
+1. **Regular Users**
+   - Can access the user dashboard
+   - Can view and edit their own profile
+2. **Admin Users**
+   - Can access all regular user functionality
+   - Can access the admin portal at `/admin-portal`
+   - Can view all users in the system
+   - Can promote/demote users to/from admin status
+
+## Authentication Flow
+
+1. **Registration**: Create a new account via `/signup`
+2. **Login**: Access your account via `/login`
+3. **JWT Token**: Upon successful login, a JWT token is stored in localStorage
+4. **Authorization**: The token is sent with all API requests in the Authorization header
+5. **Admin Check**: The admin status is included in the JWT token payload and user object
+
+## Route Protection
+
+The application uses two types of route guards:
+
+1. **ProtectedRoute**: Ensures the user is authenticated
+2. **AdminRoute**: Ensures the user is both authenticated and has admin privileges
+
+## Admin Portal
+
+The admin portal allows admin users to:
+
+1. View a list of all users in the system
+2. See each user's email and admin status
+3. Toggle admin status for any user except themselves
+4. Navigate between admin portal and regular dashboard
+
+## Development
+
+### Building for Production
 
 ```bash
 npm run build
 ```
 
 The built files will be in the `dist` directory, ready to be deployed.
-
-## Development
 
 ### Linting
 
@@ -134,18 +117,20 @@ npm run lint
 npm run typecheck
 ```
 
-## Deployment
+## Testing Admin Functionality
 
-1. Build the project
+To test the admin functionality:
 
-```bash
-npm run build
-```
+1. Create an admin user on the backend (see backend README)
+2. Log in with the admin credentials
+3. You'll see an "Go to Admin Portal" button on your dashboard
+4. Click the button to access the admin dashboard
+5. From there, you can manage users and toggle their admin status
 
-2. Deploy the contents of the `dist` directory to your hosting provider
+## Security Considerations
 
-Remember to update the API URL in the production environment.
-
-## License
-
-This project is open source and available under the [MIT License](LICENSE).
+- JWT tokens are stored in localStorage and included in all API requests
+- Admin-only routes are protected on both frontend and backend
+- UI elements adapt based on the user's role
+- Error handling provides user-friendly notifications
+- Admin users cannot revoke their own admin privileges
