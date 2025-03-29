@@ -13,6 +13,7 @@ import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import DashboardPage from "./pages/DashboardPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
+import MainLayout from "./components/layout/MainLayout";
 
 const App: React.FC = () => {
   return (
@@ -34,14 +35,17 @@ const App: React.FC = () => {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
 
-          {/* Protected routes for all authenticated users */}
+          {/* Protected routes with MainLayout */}
           <Route element={<ProtectedRoute />}>
-            <Route path="/dashboard" element={<DashboardPage />} />
-          </Route>
+            <Route element={<MainLayout />}>
+              {/* Dashboard route */}
+              <Route path="/dashboard" element={<DashboardPage />} />
 
-          {/* Protected routes for admin users only */}
-          <Route element={<AdminRoute />}>
-            <Route path="/admin-portal" element={<AdminDashboardPage />} />
+              {/* Admin routes */}
+              <Route element={<AdminRoute />}>
+                <Route path="/admin-portal" element={<AdminDashboardPage />} />
+              </Route>
+            </Route>
           </Route>
 
           {/* Redirect to login by default */}
