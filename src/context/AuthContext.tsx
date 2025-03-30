@@ -6,9 +6,16 @@ import {
   ReactNode,
 } from "react";
 import { AuthState } from "../types/auth";
-import toast from "react-hot-toast";
+import { showSuccessToast } from "../utils/toast";
 
 // Type Declarations
+
+export interface User {
+  id: number;
+  email: string;
+  admin?: boolean;
+}
+
 interface AuthContextProps {
   authState: AuthState;
   login: (email: string, password: string) => Promise<void>;
@@ -73,6 +80,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           error: null,
         });
       } catch (error) {
+        console.error("Authentication check failed:", error);
         localStorage.removeItem("auth_token");
         setAuthState({
           isAuthenticated: false,
@@ -113,7 +121,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       localStorage.setItem("auth_token", token);
 
       // Success toast
-      toast.success("Logged in successfully!");
+      showSuccessToast("Logged in successfully!");
 
       setAuthState({
         isAuthenticated: true,
@@ -122,6 +130,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         error: null,
       });
     } catch (error) {
+      console.error("Login failed:", error);
       setAuthState((prev) => ({
         ...prev,
         loading: false,
@@ -168,7 +177,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       localStorage.setItem("auth_token", token);
 
       // Success toast
-      toast.success("Account created successfully!");
+      showSuccessToast("Account created successfully!");
 
       setAuthState({
         isAuthenticated: true,
@@ -177,6 +186,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         error: null,
       });
     } catch (error) {
+      console.error("Signup failed:", error);
       setAuthState((prev) => ({
         ...prev,
         loading: false,
@@ -210,7 +220,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       localStorage.removeItem("auth_token");
 
       // Success toast
-      toast.success("Logged out successfully!");
+      showSuccessToast("Logged out successfully!");
 
       setAuthState({
         isAuthenticated: false,
@@ -219,7 +229,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         error: null,
       });
     } catch (error) {
-      // Even if the logout fails on the server, clear local state
+      console.error("Logout failed:", error);
       localStorage.removeItem("auth_token");
 
       setAuthState({

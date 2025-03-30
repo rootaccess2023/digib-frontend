@@ -1,6 +1,6 @@
 // src/services/AdminService.ts
 import { User } from "../context/AuthContext";
-import toast from "react-hot-toast";
+import { showErrorToast } from "../utils/toast";
 
 const API_URL = "http://localhost:3000/api";
 
@@ -15,7 +15,7 @@ class AdminService {
     const token = this.getToken();
 
     if (!token) {
-      toast.error("No authentication token found");
+      showErrorToast("No authentication token found");
       throw new Error("No authentication token found");
     }
 
@@ -29,14 +29,14 @@ class AdminService {
       if (!response.ok) {
         const errorData = await response.json();
         const errorMessage = errorData.error || "Failed to fetch users";
-        toast.error(errorMessage);
+        showErrorToast(errorMessage);
         throw new Error(errorMessage);
       }
 
       return response.json();
     } catch (error) {
       console.error("API Error:", error);
-      toast.error(
+      showErrorToast(
         error instanceof Error ? error.message : "Network error occurred"
       );
       throw error;
@@ -48,7 +48,7 @@ class AdminService {
     const token = this.getToken();
 
     if (!token) {
-      toast.error("No authentication token found");
+      showErrorToast("No authentication token found");
       throw new Error("No authentication token found");
     }
 
@@ -67,14 +67,14 @@ class AdminService {
       if (!response.ok) {
         const errorData = await response.json();
         const errorMessage = errorData.error || "Failed to update admin status";
-        toast.error(errorMessage);
+        showErrorToast(errorMessage);
         throw new Error(errorMessage);
       }
 
       return response.json();
     } catch (error) {
       console.error("API Error:", error);
-      toast.error(
+      showErrorToast(
         error instanceof Error ? error.message : "Network error occurred"
       );
       throw error;

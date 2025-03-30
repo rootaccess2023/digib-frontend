@@ -1,8 +1,7 @@
-// src/components/auth/AdminRoute.tsx
 import React, { useEffect } from "react";
 import { useNavigate, Outlet } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import toast from "react-hot-toast";
+import { showErrorToast } from "../../utils/toast";
 
 const AdminRoute: React.FC = () => {
   const { authState } = useAuth();
@@ -13,11 +12,11 @@ const AdminRoute: React.FC = () => {
     if (!authState.loading) {
       if (!authState.isAuthenticated) {
         // Not authenticated, redirect to login
-        toast.error("Please login to continue");
+        showErrorToast("Please login to continue");
         navigate("/login", { replace: true });
       } else if (!authState.user?.admin) {
         // Authenticated but not an admin, redirect to user dashboard
-        toast.error("Admin access required");
+        showErrorToast("Admin access required");
         navigate("/dashboard", { replace: true });
       }
     }
