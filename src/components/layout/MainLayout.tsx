@@ -80,7 +80,7 @@ const MainLayout = () => {
 
       {/* Main content area */}
       <div className="flex-1 overflow-auto">
-        <div className="p-6">
+        <div className="h-screen p-6">
           <Outlet />
         </div>
       </div>
