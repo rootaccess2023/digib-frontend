@@ -1,4 +1,3 @@
-// src/services/AdminService.ts
 import { User } from "../context/AuthContext";
 import { showErrorToast } from "../utils/toast";
 
