@@ -43,7 +43,10 @@ const App: React.FC = () => {
 
               {/* Admin routes */}
               <Route element={<AdminRoute />}>
-                <Route path="/admin-portal" element={<AdminDashboardPage />} />
+                <Route
+                  path="/admin-user-management"
+                  element={<AdminDashboardPage />}
+                />
               </Route>
             </Route>
           </Route>

@@ -78,7 +78,7 @@ const MainLayout = () => {
                   Admin
                 </div>
                 <NavLink
-                  to="/admin-portal"
+                  to="/admin-user-management"
                   onClick={closeSidebar}
                   className={({ isActive }) =>
                     `flex items-center space-x-3 px-4 py-2 rounded-md transition-colors ${

@@ -22,13 +22,12 @@ const AdminDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [selectAll, setSelectAll] = useState<boolean>(false);
-  const [tableHeight, setTableHeight] = useState<number>(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const [showFilters, setShowFilters] = useState<boolean>(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [usersPerPage] = useState<number>(5);
+  const [usersPerPage] = useState<number>(6); // Set to exactly 6 users per page
   const [totalPages, setTotalPages] = useState<number>(1);
 
   // Search and filter states
@@ -52,13 +51,6 @@ const AdminDashboard: React.FC = () => {
       fetchUsers();
     }
   }, [authState.isAuthenticated, authState.user]);
-
-  // Create a reference for calculating table body height
-  useEffect(() => {
-    // This sets a dynamic height based on content
-    // We're not setting a fixed height anymore - let it fit content
-    setTableHeight(null);
-  }, []);
 
   // Filter users based on search and filter criteria
   const filteredUsers = useMemo(() => {
@@ -445,12 +437,7 @@ const AdminDashboard: React.FC = () => {
           </div>
 
           {/* Table body */}
-          <div
-            className="overflow-y-auto"
-            style={{
-              height: "auto", // Let the height be determined by content
-            }}
-          >
+          <div className="overflow-y-auto">
             {/* Mobile cards view */}
             <div className="sm:hidden space-y-3 p-4">
               {paginatedUsers.map(renderMobileUserCard)}
