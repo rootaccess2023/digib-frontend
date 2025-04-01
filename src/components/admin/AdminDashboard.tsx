@@ -11,6 +11,9 @@ import {
   FiFilter,
   FiSearch,
   FiX,
+  FiTrash2,
+  FiShield,
+  FiShieldOff,
 } from "react-icons/fi";
 import { showErrorToast, showSuccessToast } from "../../utils/toast";
 
@@ -22,17 +25,23 @@ const AdminDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [selectAll, setSelectAll] = useState<boolean>(false);
+  const [showBatchActions, setShowBatchActions] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [showFilters, setShowFilters] = useState<boolean>(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [usersPerPage] = useState<number>(6); // Set to exactly 6 users per page
+  const [usersPerPage] = useState<number>(4);
   const [totalPages, setTotalPages] = useState<number>(1);
 
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [filterType, setFilterType] = useState<"all" | "admin" | "user">("all");
+
+  // Show batch actions when users are selected
+  useEffect(() => {
+    setShowBatchActions(selectedUsers.length > 0);
+  }, [selectedUsers]);
 
   // Fetch users data
   useEffect(() => {
@@ -107,6 +116,106 @@ const AdminDashboard: React.FC = () => {
     } catch (err) {
       showErrorToast(
         err instanceof Error ? err.message : "Failed to update admin status"
+      );
+    }
+  };
+
+  const handleBatchAddAdmin = async () => {
+    try {
+      // Filter out current user to prevent self-modification
+      const eligibleUsers = selectedUsers.filter(
+        (id) => id !== authState.user?.id
+      );
+
+      if (eligibleUsers.length === 0) {
+        showErrorToast("Cannot modify your own admin status");
+        return;
+      }
+
+      // In a real implementation, this would be a batch API call
+      for (const userId of eligibleUsers) {
+        const user = users.find((u) => u.id === userId);
+        if (user && !user.admin) {
+          await AdminService.toggleAdminStatus(userId);
+        }
+      }
+
+      // Refresh user data
+      const userData = await AdminService.getAllUsers();
+      setUsers(userData);
+
+      setSelectedUsers([]);
+      setSelectAll(false);
+      showSuccessToast(
+        `Admin privileges granted to ${eligibleUsers.length} users`
+      );
+    } catch (err) {
+      showErrorToast(
+        err instanceof Error ? err.message : "Failed to update admin status"
+      );
+    }
+  };
+
+  const handleBatchRemoveAdmin = async () => {
+    try {
+      // Filter out current user to prevent self-modification
+      const eligibleUsers = selectedUsers.filter(
+        (id) => id !== authState.user?.id
+      );
+
+      if (eligibleUsers.length === 0) {
+        showErrorToast("Cannot modify your own admin status");
+        return;
+      }
+
+      // In a real implementation, this would be a batch API call
+      for (const userId of eligibleUsers) {
+        const user = users.find((u) => u.id === userId);
+        if (user && user.admin) {
+          await AdminService.toggleAdminStatus(userId);
+        }
+      }
+
+      // Refresh user data
+      const userData = await AdminService.getAllUsers();
+      setUsers(userData);
+
+      setSelectedUsers([]);
+      setSelectAll(false);
+      showSuccessToast(
+        `Admin privileges removed from ${eligibleUsers.length} users`
+      );
+    } catch (err) {
+      showErrorToast(
+        err instanceof Error ? err.message : "Failed to update admin status"
+      );
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    try {
+      // Filter out current user to prevent self-deletion
+      const eligibleUsers = selectedUsers.filter(
+        (id) => id !== authState.user?.id
+      );
+
+      if (eligibleUsers.length === 0) {
+        showErrorToast("Cannot delete your own account");
+        return;
+      }
+
+      // Simulate batch deletion (in a real app, this would call an API)
+      const updatedUsers = users.filter(
+        (user) => !eligibleUsers.includes(user.id)
+      );
+      setUsers(updatedUsers);
+
+      setSelectedUsers([]);
+      setSelectAll(false);
+      showSuccessToast(`${eligibleUsers.length} users deleted successfully`);
+    } catch (err) {
+      showErrorToast(
+        err instanceof Error ? err.message : "Failed to delete users"
       );
     }
   };
@@ -254,6 +363,38 @@ const AdminDashboard: React.FC = () => {
           User Management
         </h1>
       </div>
+
+      {/* Batch Actions Bar - Only visible when users are selected */}
+      {showBatchActions && (
+        <div className="bg-gray-50 border border-gray-200 rounded-md p-3 flex items-center justify-between">
+          <div className="text-sm font-medium text-gray-700">
+            {selectedUsers.length} users selected
+          </div>
+          <div className="flex space-x-2">
+            <button
+              onClick={handleBatchAddAdmin}
+              className="flex items-center px-3 py-1 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 transition-colors"
+            >
+              <FiShield className="mr-1" size={14} />
+              <span>Make Admin</span>
+            </button>
+            <button
+              onClick={handleBatchRemoveAdmin}
+              className="flex items-center px-3 py-1 bg-gray-600 text-white rounded-md text-sm hover:bg-gray-700 transition-colors"
+            >
+              <FiShieldOff className="mr-1" size={14} />
+              <span>Remove Admin</span>
+            </button>
+            <button
+              onClick={handleBatchDelete}
+              className="flex items-center px-3 py-1 bg-red-600 text-white rounded-md text-sm hover:bg-red-700 transition-colors"
+            >
+              <FiTrash2 className="mr-1" size={14} />
+              <span>Delete</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Desktop search and filter */}
       <div className="hidden sm:flex items-center justify-between mb-4">
@@ -434,6 +575,33 @@ const AdminDashboard: React.FC = () => {
             <span className="text-sm text-gray-500">
               {selectAll ? "Deselect all" : "Select all"}
             </span>
+
+            {/* Mobile batch actions */}
+            {showBatchActions && (
+              <div className="flex ml-auto space-x-2">
+                <button
+                  onClick={handleBatchAddAdmin}
+                  className="p-1 bg-green-600 text-white rounded-md text-sm"
+                  title="Make Admin"
+                >
+                  <FiShield size={16} />
+                </button>
+                <button
+                  onClick={handleBatchRemoveAdmin}
+                  className="p-1 bg-gray-600 text-white rounded-md text-sm"
+                  title="Remove Admin"
+                >
+                  <FiShieldOff size={16} />
+                </button>
+                <button
+                  onClick={handleBatchDelete}
+                  className="p-1 bg-red-600 text-white rounded-md text-sm"
+                  title="Delete"
+                >
+                  <FiTrash2 size={16} />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Table body */}
