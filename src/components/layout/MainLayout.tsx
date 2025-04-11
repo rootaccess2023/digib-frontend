@@ -1,7 +1,15 @@
 import { useState } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { FiBox, FiHome, FiLogOut, FiUsers, FiMenu, FiX } from "react-icons/fi";
+import {
+  FiBox,
+  FiHome,
+  FiLogOut,
+  FiUsers,
+  FiMenu,
+  FiX,
+  FiPieChart,
+} from "react-icons/fi";
 
 const MainLayout = () => {
   const { authState, logout } = useAuth();
@@ -22,7 +30,7 @@ const MainLayout = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-white">
+    <div className="flex h-screen bg-white overflow-hidden">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
@@ -35,7 +43,7 @@ const MainLayout = () => {
       <div
         className={`${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } fixed inset-y-0 left-0 z-30 w-64 transition duration-300 transform md:translate-x-0 md:static md:inset-0 md:h-auto border-r border-gray-200 bg-white text-gray-800 flex flex-col`}
+        } fixed inset-y-0 left-0 z-30 w-64 transition duration-300 transform md:translate-x-0 md:static md:inset-0 md:h-screen flex-shrink-0 border-r border-gray-200 bg-white text-gray-800 flex flex-col`}
       >
         {/* Logo section */}
         <div className="p-4 md:p-5 border-b border-gray-200 flex items-center justify-between">
@@ -43,7 +51,9 @@ const MainLayout = () => {
             <div className="h-6 w-6 md:h-8 md:w-8 rounded-md bg-black flex items-center justify-center mr-2">
               <FiBox className="text-white text-sm md:text-base" />
             </div>
-            <span className="text-lg md:text-xl font-bold">App Dashboard</span>
+            <span className="text-lg md:text-xl font-bold">
+              Digital Barangay
+            </span>
           </div>
           <button
             className="md:hidden text-gray-500 hover:text-gray-700"
@@ -53,7 +63,7 @@ const MainLayout = () => {
           </button>
         </div>
 
-        <div className="flex-1 pt-2 p-4 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto pt-2 p-4">
           {/* Navigation links */}
           <nav className="space-y-2">
             <NavLink
@@ -77,6 +87,22 @@ const MainLayout = () => {
                 <div className="pt-4 pb-1 px-1 text-xs uppercase text-gray-500 font-medium">
                   Admin
                 </div>
+
+                <NavLink
+                  to="/admin-dashboard"
+                  onClick={closeSidebar}
+                  className={({ isActive }) =>
+                    `flex items-center space-x-3 px-4 py-2 rounded-md transition-colors ${
+                      isActive
+                        ? "bg-black text-white"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`
+                  }
+                >
+                  <FiPieChart className="text-lg md:text-xl" />
+                  <span className="text-sm md:text-base">Admin Dashboard</span>
+                </NavLink>
+
                 <NavLink
                   to="/admin-user-management"
                   onClick={closeSidebar}
@@ -111,7 +137,7 @@ const MainLayout = () => {
       {/* Main content area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile header with menu button */}
-        <div className="md:hidden border-b border-gray-200 bg-white p-4 flex items-center">
+        <div className="md:hidden sticky top-0 z-10 border-b border-gray-200 bg-white p-4 flex items-center">
           <button
             className="text-gray-500 hover:text-gray-700 mr-3"
             onClick={toggleSidebar}
@@ -122,13 +148,13 @@ const MainLayout = () => {
             <div className="h-6 w-6 rounded-md bg-black flex items-center justify-center mr-2">
               <FiBox className="text-white text-sm" />
             </div>
-            <span className="text-lg font-bold">App Dashboard</span>
+            <span className="text-lg font-bold">Digital Barangay</span>
           </div>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-auto">
-          <div className="h-full p-4 sm:p-6">
+        <div className="flex-1 overflow-y-auto">
+          <div className="min-h-full p-4 sm:p-6">
             <Outlet />
           </div>
         </div>

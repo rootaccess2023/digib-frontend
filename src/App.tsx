@@ -13,6 +13,7 @@ import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import DashboardPage from "./pages/DashboardPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
+import UserManagementPage from "./pages/AdminUserManagementPage"; // Rename this component as needed
 import MainLayout from "./components/layout/MainLayout";
 
 const App: React.FC = () => {
@@ -44,8 +45,12 @@ const App: React.FC = () => {
               {/* Admin routes */}
               <Route element={<AdminRoute />}>
                 <Route
-                  path="/admin-user-management"
+                  path="/admin-dashboard"
                   element={<AdminDashboardPage />}
+                />
+                <Route
+                  path="/admin-user-management"
+                  element={<UserManagementPage />}
                 />
               </Route>
             </Route>

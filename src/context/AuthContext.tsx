@@ -9,21 +9,50 @@ import { AuthState } from "../types/auth";
 import { showSuccessToast } from "../utils/toast";
 
 // Type Declarations
+export interface ResidentialAddress {
+  id?: number;
+  house_number: string;
+  street_name: string;
+  purok: string;
+  barangay: string;
+  city: string;
+  province: string;
+}
 
 export interface User {
   id: number;
   email: string;
   admin?: boolean;
+  first_name?: string;
+  middle_name?: string;
+  last_name?: string;
+  name_extension?: string;
+  date_of_birth?: string;
+  gender?: string;
+  civil_status?: string;
+  mobile_phone?: string;
+  residential_address?: ResidentialAddress;
+}
+
+export interface SignupData {
+  email: string;
+  password: string;
+  password_confirmation: string;
+  first_name: string;
+  middle_name: string;
+  last_name: string;
+  name_extension: string;
+  date_of_birth: string;
+  gender: string;
+  civil_status: string;
+  mobile_phone: string;
+  residential_address: ResidentialAddress;
 }
 
 interface AuthContextProps {
   authState: AuthState;
   login: (email: string, password: string) => Promise<void>;
-  signup: (
-    email: string,
-    password: string,
-    passwordConfirmation: string
-  ) => Promise<void>;
+  signup: (data: SignupData) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
 }
@@ -139,11 +168,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  const signup = async (
-    email: string,
-    password: string,
-    passwordConfirmation: string
-  ) => {
+  const signup = async (data: SignupData) => {
     setAuthState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
@@ -152,13 +177,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          user: {
-            email,
-            password,
-            password_confirmation: passwordConfirmation,
-          },
-        }),
+        body: JSON.stringify({ user: data }),
       });
 
       if (!response.ok) {
@@ -166,8 +185,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         throw new Error(errorData.status?.message || "Signup failed");
       }
 
-      const data = await response.json();
-      const token = data.token;
+      const responseData = await response.json();
+      const token = responseData.token;
 
       if (!token) {
         throw new Error("No token received");
@@ -181,7 +200,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       setAuthState({
         isAuthenticated: true,
-        user: data.data,
+        user: responseData.data,
         loading: false,
         error: null,
       });
@@ -216,7 +235,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         throw new Error("Logout failed");
       }
 
-      // Store auth token to localStorage
+      // Remove auth token from localStorage
       localStorage.removeItem("auth_token");
 
       // Success toast
