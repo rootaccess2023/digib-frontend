@@ -1,343 +1,213 @@
-import React, { useEffect, useState, useRef, useMemo } from "react";
-import { useAuth, User } from "../../context/AuthContext";
+import React, { useEffect, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import AdminService from "../../services/AdminService";
 import {
   FiUsers,
-  FiMoreVertical,
   FiUserCheck,
   FiUserX,
-  FiChevronLeft,
-  FiChevronRight,
-  FiFilter,
-  FiSearch,
-  FiX,
-  FiTrash2,
-  FiShield,
-  FiShieldOff,
+  FiRefreshCw,
+  FiPieChart,
+  FiCalendar,
+  FiHome,
+  FiMap,
 } from "react-icons/fi";
-import { showErrorToast, showSuccessToast } from "../../utils/toast";
+import { User } from "../../context/AuthContext";
+
+// Custom type for age distribution
+interface AgeDistribution {
+  under18: number;
+  age18to25: number;
+  age26to35: number;
+  age36to45: number;
+  age46to60: number;
+  over60: number;
+}
+
+// Custom type for user statistics
+interface UserStatistics {
+  totalUsers: number;
+  maleCount: number;
+  femaleCount: number;
+  otherGenderCount: number;
+  civilStatusDistribution: { [key: string]: number };
+  ageDistribution: AgeDistribution;
+  topBarangays: Array<{ barangay: string; count: number }>;
+  topCities: Array<{ city: string; count: number }>;
+  recentRegistrations: User[];
+}
 
 const AdminDashboard: React.FC = () => {
   const { authState } = useAuth();
-  // Basic state
-  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
-  const [selectAll, setSelectAll] = useState<boolean>(false);
-  const [showBatchActions, setShowBatchActions] = useState<boolean>(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [showFilters, setShowFilters] = useState<boolean>(false);
+  const [stats, setStats] = useState<UserStatistics>({
+    totalUsers: 0,
+    maleCount: 0,
+    femaleCount: 0,
+    otherGenderCount: 0,
+    civilStatusDistribution: {},
+    ageDistribution: {
+      under18: 0,
+      age18to25: 0,
+      age26to35: 0,
+      age36to45: 0,
+      age46to60: 0,
+      over60: 0,
+    },
+    topBarangays: [],
+    topCities: [],
+    recentRegistrations: [],
+  });
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [usersPerPage] = useState<number>(4);
-  const [totalPages, setTotalPages] = useState<number>(1);
-
-  // Search and filter states
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  const [filterType, setFilterType] = useState<"all" | "admin" | "user">("all");
-
-  // Show batch actions when users are selected
+  // Fetch dashboard statistics
   useEffect(() => {
-    setShowBatchActions(selectedUsers.length > 0);
-  }, [selectedUsers]);
-
-  // Fetch users data
-  useEffect(() => {
-    const fetchUsers = async () => {
+    const fetchDashboardStats = async () => {
       try {
-        const userData = await AdminService.getAllUsers();
-        setUsers(userData);
+        setLoading(true);
+        const dashboardStats = await AdminService.getDashboardStats();
+
+        // Transform the API response to match our local state structure
+        const transformedStats = {
+          totalUsers: dashboardStats.total_users,
+          maleCount: dashboardStats.gender_distribution.male,
+          femaleCount: dashboardStats.gender_distribution.female,
+          otherGenderCount: dashboardStats.gender_distribution.other,
+          civilStatusDistribution: dashboardStats.civil_status_distribution,
+          ageDistribution: dashboardStats.age_distribution,
+          // Transform the array format to our object format for locations
+          topBarangays: dashboardStats.top_barangays.map(
+            ([barangay, count]) => ({ barangay, count })
+          ),
+          topCities: dashboardStats.top_cities.map(([city, count]) => ({
+            city,
+            count,
+          })),
+          recentRegistrations: dashboardStats.recent_registrations,
+        };
+
+        setStats(transformedStats);
         setLoading(false);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load users");
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Failed to fetch dashboard statistics"
+        );
         setLoading(false);
       }
     };
 
     if (authState.isAuthenticated && authState.user?.admin) {
-      fetchUsers();
+      fetchDashboardStats();
     }
   }, [authState.isAuthenticated, authState.user]);
 
-  // Filter users based on search and filter criteria
-  const filteredUsers = useMemo(() => {
-    return users.filter((user) => {
-      // Apply user type filter
-      if (filterType === "admin" && !user.admin) return false;
-      if (filterType === "user" && user.admin) return false;
+  // Calculate age based on date of birth
+  const calculateAge = (dateOfBirth: string): number => {
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
 
-      // Apply search term filter
-      if (searchTerm.trim() === "") return true;
-
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        user.email.toLowerCase().includes(searchLower) ||
-        user.email.split("@")[0].toLowerCase().includes(searchLower)
-      );
-    });
-  }, [users, filterType, searchTerm]);
-
-  // Update pagination when filters change
-  useEffect(() => {
-    setTotalPages(Math.max(1, Math.ceil(filteredUsers.length / usersPerPage)));
-
-    // Reset to first page if current page would be out of range
     if (
-      currentPage > 1 &&
-      filteredUsers.length <= (currentPage - 1) * usersPerPage
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
     ) {
-      setCurrentPage(1);
+      age--;
     }
-  }, [filteredUsers.length, usersPerPage, currentPage]);
 
-  // Get current users for the page
-  const indexOfLastUser = currentPage * usersPerPage;
-  const indexOfFirstUser = indexOfLastUser - usersPerPage;
-  const paginatedUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
+    return age;
+  };
 
-  const handleToggleAdmin = async (userId: number) => {
-    try {
-      // Prevent toggling current user's admin status
-      if (userId === authState.user?.id) {
-        showErrorToast("You cannot remove your own admin privileges");
-        return;
+  // Calculate age distribution
+  const calculateAgeDistribution = (users: User[]): AgeDistribution => {
+    const distribution: AgeDistribution = {
+      under18: 0,
+      age18to25: 0,
+      age26to35: 0,
+      age36to45: 0,
+      age46to60: 0,
+      over60: 0,
+    };
+
+    users.forEach((user) => {
+      if (!user.date_of_birth) return;
+
+      const age = calculateAge(user.date_of_birth);
+
+      if (age < 18) distribution.under18++;
+      else if (age >= 18 && age <= 25) distribution.age18to25++;
+      else if (age >= 26 && age <= 35) distribution.age26to35++;
+      else if (age >= 36 && age <= 45) distribution.age36to45++;
+      else if (age >= 46 && age <= 60) distribution.age46to60++;
+      else distribution.over60++;
+    });
+
+    return distribution;
+  };
+
+  // Get top locations (barangay, city, etc)
+  const getTopLocations = (
+    users: User[],
+    locationType: "barangay" | "city"
+  ): Array<{ [key: string]: any }> => {
+    const locationCounts: { [key: string]: number } = {};
+
+    users.forEach((user) => {
+      if (user.residential_address && user.residential_address[locationType]) {
+        const location = user.residential_address[locationType];
+        locationCounts[location] = (locationCounts[location] || 0) + 1;
       }
+    });
 
-      const updatedUser = await AdminService.toggleAdminStatus(userId);
+    return Object.entries(locationCounts)
+      .map(([location, count]) => ({ [locationType]: location, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+  };
 
-      // Update the users list with the updated user
-      setUsers(
-        users.map((user) => (user.id === updatedUser.id ? updatedUser : user))
-      );
+  // Refresh data
+  const handleRefresh = () => {
+    if (authState.isAuthenticated && authState.user?.admin) {
+      setLoading(true);
+      AdminService.getDashboardStats()
+        .then((dashboardStats) => {
+          // Transform the API response to match our local state structure
+          const transformedStats = {
+            totalUsers: dashboardStats.total_users,
+            maleCount: dashboardStats.gender_distribution.male,
+            femaleCount: dashboardStats.gender_distribution.female,
+            otherGenderCount: dashboardStats.gender_distribution.other,
+            civilStatusDistribution: dashboardStats.civil_status_distribution,
+            ageDistribution: dashboardStats.age_distribution,
+            // Transform the array format to our object format for locations
+            topBarangays: dashboardStats.top_barangays.map(
+              ([barangay, count]) => ({ barangay, count })
+            ),
+            topCities: dashboardStats.top_cities.map(([city, count]) => ({
+              city,
+              count,
+            })),
+            recentRegistrations: dashboardStats.recent_registrations,
+          };
 
-      showSuccessToast(`Admin status updated for ${updatedUser.email}`);
-    } catch (err) {
-      showErrorToast(
-        err instanceof Error ? err.message : "Failed to update admin status"
-      );
+          setStats(transformedStats);
+          setLoading(false);
+        })
+        .catch((err) => {
+          setError(
+            err instanceof Error ? err.message : "Failed to refresh data"
+          );
+          setLoading(false);
+        });
     }
   };
 
-  const handleBatchAddAdmin = async () => {
-    try {
-      // Filter out current user to prevent self-modification
-      const eligibleUsers = selectedUsers.filter(
-        (id) => id !== authState.user?.id
-      );
-
-      if (eligibleUsers.length === 0) {
-        showErrorToast("Cannot modify your own admin status");
-        return;
-      }
-
-      // In a real implementation, this would be a batch API call
-      for (const userId of eligibleUsers) {
-        const user = users.find((u) => u.id === userId);
-        if (user && !user.admin) {
-          await AdminService.toggleAdminStatus(userId);
-        }
-      }
-
-      // Refresh user data
-      const userData = await AdminService.getAllUsers();
-      setUsers(userData);
-
-      setSelectedUsers([]);
-      setSelectAll(false);
-      showSuccessToast(
-        `Admin privileges granted to ${eligibleUsers.length} users`
-      );
-    } catch (err) {
-      showErrorToast(
-        err instanceof Error ? err.message : "Failed to update admin status"
-      );
-    }
+  // Format percentage
+  const formatPercentage = (value: number, total: number): string => {
+    if (total === 0) return "0%";
+    return `${Math.round((value / total) * 100)}%`;
   };
-
-  const handleBatchRemoveAdmin = async () => {
-    try {
-      // Filter out current user to prevent self-modification
-      const eligibleUsers = selectedUsers.filter(
-        (id) => id !== authState.user?.id
-      );
-
-      if (eligibleUsers.length === 0) {
-        showErrorToast("Cannot modify your own admin status");
-        return;
-      }
-
-      // In a real implementation, this would be a batch API call
-      for (const userId of eligibleUsers) {
-        const user = users.find((u) => u.id === userId);
-        if (user && user.admin) {
-          await AdminService.toggleAdminStatus(userId);
-        }
-      }
-
-      // Refresh user data
-      const userData = await AdminService.getAllUsers();
-      setUsers(userData);
-
-      setSelectedUsers([]);
-      setSelectAll(false);
-      showSuccessToast(
-        `Admin privileges removed from ${eligibleUsers.length} users`
-      );
-    } catch (err) {
-      showErrorToast(
-        err instanceof Error ? err.message : "Failed to update admin status"
-      );
-    }
-  };
-
-  const handleBatchDelete = async () => {
-    try {
-      // Filter out current user to prevent self-deletion
-      const eligibleUsers = selectedUsers.filter(
-        (id) => id !== authState.user?.id
-      );
-
-      if (eligibleUsers.length === 0) {
-        showErrorToast("Cannot delete your own account");
-        return;
-      }
-
-      // Simulate batch deletion (in a real app, this would call an API)
-      const updatedUsers = users.filter(
-        (user) => !eligibleUsers.includes(user.id)
-      );
-      setUsers(updatedUsers);
-
-      setSelectedUsers([]);
-      setSelectAll(false);
-      showSuccessToast(`${eligibleUsers.length} users deleted successfully`);
-    } catch (err) {
-      showErrorToast(
-        err instanceof Error ? err.message : "Failed to delete users"
-      );
-    }
-  };
-
-  const toggleSelectUser = (userId: number) => {
-    if (selectedUsers.includes(userId)) {
-      setSelectedUsers(selectedUsers.filter((id) => id !== userId));
-    } else {
-      setSelectedUsers([...selectedUsers, userId]);
-    }
-  };
-
-  const toggleSelectAll = () => {
-    if (selectAll) {
-      setSelectedUsers([]);
-    } else {
-      const currentPageUserIds = paginatedUsers.map((user) => user.id);
-      setSelectedUsers(currentPageUserIds);
-    }
-    setSelectAll(!selectAll);
-  };
-
-  // Function to change the page
-  const handlePageChange = (pageNumber: number) => {
-    if (pageNumber > 0 && pageNumber <= totalPages) {
-      setCurrentPage(pageNumber);
-      setSelectAll(false);
-      setSelectedUsers([]);
-    }
-  };
-
-  // Generate page numbers
-  const renderPageNumbers = () => {
-    const pageNumbers = [];
-
-    // Calculate the range of page numbers to display
-    let startPage = Math.max(1, currentPage - 1);
-    let endPage = Math.min(totalPages, startPage + 2);
-
-    // Adjust start page if end page is maxed out
-    if (endPage === totalPages && totalPages > 1) {
-      startPage = Math.max(1, endPage - 2);
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      pageNumbers.push(i);
-    }
-
-    return pageNumbers;
-  };
-
-  // Mobile view for each user
-  const renderMobileUserCard = (user: User) => (
-    <div
-      key={user.id}
-      className="bg-white border border-gray-200 rounded-md mb-3 overflow-hidden shadow-sm"
-    >
-      <div className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center">
-            <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center mr-3 overflow-hidden">
-              <span className="text-white font-medium">
-                {user.email.charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <div>
-              <div className="font-medium text-gray-900 truncate max-w-xs">
-                {user.email.split("@")[0]}
-              </div>
-              <div className="text-gray-500 text-sm truncate max-w-xs">
-                {user.email}
-              </div>
-            </div>
-          </div>
-          <input
-            type="checkbox"
-            className="rounded"
-            checked={selectedUsers.includes(user.id)}
-            onChange={() => toggleSelectUser(user.id)}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 mb-3">
-          <div className="text-sm">
-            <span className="text-gray-500">Access: </span>
-            {user.admin ? (
-              <span className="bg-green-50 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
-                Admin
-              </span>
-            ) : (
-              <span className="bg-gray-50 text-gray-700 px-2 py-1 rounded-full text-xs font-medium">
-                User
-              </span>
-            )}
-          </div>
-          <div className="text-sm text-right">
-            <span className="text-gray-500">Last active: </span>
-            <span>Mar 4, 2024</span>
-          </div>
-        </div>
-
-        <div className="flex justify-between items-center">
-          <button
-            onClick={() => handleToggleAdmin(user.id)}
-            disabled={user.id === authState.user?.id}
-            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-              user.id === authState.user?.id
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : user.admin
-                ? "bg-gray-100 text-gray-800 hover:bg-gray-200"
-                : "bg-black text-white hover:bg-gray-800"
-            }`}
-          >
-            {user.admin ? "Remove Admin" : "Make Admin"}
-          </button>
-          <button className="text-gray-400 hover:text-gray-600 p-2">
-            <FiMoreVertical />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
 
   if (loading) {
     return (
@@ -356,395 +226,435 @@ const AdminDashboard: React.FC = () => {
   }
 
   return (
-    <div className="w-full max-w-6xl mx-auto flex flex-col space-y-4 px-4 sm:px-0">
-      <div className="flex items-center mb-4 sm:mb-6">
-        <FiUsers className="text-xl sm:text-2xl mr-2 sm:mr-3" />
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
-          User Management
-        </h1>
+    <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 pb-6">
+      <div className="flex items-center justify-between mb-4 sm:mb-6">
+        <div className="flex items-center">
+          <FiPieChart className="text-xl sm:text-2xl mr-2 sm:mr-3" />
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
+            Admin Dashboard
+          </h1>
+        </div>
+
+        <button
+          onClick={handleRefresh}
+          className="flex items-center bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-2 rounded-md transition-colors"
+        >
+          <FiRefreshCw className="mr-2" />
+          Refresh Data
+        </button>
       </div>
 
-      {/* Batch Actions Bar - Only visible when users are selected */}
-      {showBatchActions && (
-        <div className="bg-gray-50 border border-gray-200 rounded-md p-3 flex items-center justify-between">
-          <div className="text-sm font-medium text-gray-700">
-            {selectedUsers.length} users selected
-          </div>
-          <div className="flex space-x-2">
-            <button
-              onClick={handleBatchAddAdmin}
-              className="flex items-center px-3 py-1 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 transition-colors"
-            >
-              <FiShield className="mr-1" size={14} />
-              <span>Make Admin</span>
-            </button>
-            <button
-              onClick={handleBatchRemoveAdmin}
-              className="flex items-center px-3 py-1 bg-gray-600 text-white rounded-md text-sm hover:bg-gray-700 transition-colors"
-            >
-              <FiShieldOff className="mr-1" size={14} />
-              <span>Remove Admin</span>
-            </button>
-            <button
-              onClick={handleBatchDelete}
-              className="flex items-center px-3 py-1 bg-red-600 text-white rounded-md text-sm hover:bg-red-700 transition-colors"
-            >
-              <FiTrash2 className="mr-1" size={14} />
-              <span>Delete</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Desktop search and filter */}
-      <div className="hidden sm:flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-2">
-          <div className="text-sm text-gray-700 mr-2">Filter:</div>
-          <div className="flex space-x-2">
-            <button
-              onClick={() => setFilterType("all")}
-              className={`px-4 py-2 rounded-md text-sm transition-colors ${
-                filterType === "all"
-                  ? "bg-black text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setFilterType("admin")}
-              className={`px-4 py-2 rounded-md text-sm transition-colors ${
-                filterType === "admin"
-                  ? "bg-black text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              Admin
-            </button>
-            <button
-              onClick={() => setFilterType("user")}
-              className={`px-4 py-2 rounded-md text-sm transition-colors ${
-                filterType === "user"
-                  ? "bg-black text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              Regular
-            </button>
-          </div>
-        </div>
-
-        <div className="relative w-64">
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search users..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-md"
-          />
-          <FiSearch className="absolute left-3 top-3 text-gray-400" />
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm("")}
-              className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-            >
-              <FiX />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Mobile filter and search */}
-      <div className="sm:hidden mb-4">
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center bg-white border border-gray-200 px-3 py-2 rounded-md text-sm"
-          >
-            <FiFilter className="mr-2" />
-            Filter
-          </button>
-
-          <div className="relative">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search..."
-              className="pl-8 pr-3 py-2 border border-gray-200 rounded-md text-sm"
-            />
-            <FiSearch className="absolute left-3 top-2.5 text-gray-400" />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm("")}
-                className="absolute right-3 top-2.5 text-gray-400"
-              >
-                <FiX className="text-sm" />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {showFilters && (
-          <div className="mt-3 p-4 bg-white border border-gray-200 rounded-md">
-            <div className="text-sm mb-2 font-medium">User type</div>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => setFilterType("all")}
-                className={`px-3 py-1 rounded-full text-xs ${
-                  filterType === "all"
-                    ? "bg-black text-white"
-                    : "border border-gray-200 text-gray-700"
-                }`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => setFilterType("admin")}
-                className={`px-3 py-1 rounded-full text-xs ${
-                  filterType === "admin"
-                    ? "bg-black text-white"
-                    : "border border-gray-200 text-gray-700"
-                }`}
-              >
-                Admin
-              </button>
-              <button
-                onClick={() => setFilterType("user")}
-                className={`px-3 py-1 rounded-full text-xs ${
-                  filterType === "user"
-                    ? "bg-black text-white"
-                    : "border border-gray-200 text-gray-700"
-                }`}
-              >
-                Regular
-              </button>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white rounded-md overflow-hidden shadow-sm border border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500 mb-1">Total Residents</p>
+              <p className="text-2xl font-bold text-gray-800">
+                {stats.totalUsers}
+              </p>
+            </div>
+            <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+              <FiUsers className="text-blue-600 text-xl" />
             </div>
           </div>
-        )}
+        </div>
+
+        <div className="bg-white rounded-md overflow-hidden shadow-sm border border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500 mb-1">Male</p>
+              <p className="text-2xl font-bold text-gray-800">
+                {stats.maleCount}{" "}
+                <span className="text-sm font-normal">
+                  ({formatPercentage(stats.maleCount, stats.totalUsers)})
+                </span>
+              </p>
+            </div>
+            <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+              <FiUserCheck className="text-green-600 text-xl" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-md overflow-hidden shadow-sm border border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500 mb-1">Female</p>
+              <p className="text-2xl font-bold text-gray-800">
+                {stats.femaleCount}{" "}
+                <span className="text-sm font-normal">
+                  ({formatPercentage(stats.femaleCount, stats.totalUsers)})
+                </span>
+              </p>
+            </div>
+            <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
+              <FiUserCheck className="text-purple-600 text-xl" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-md overflow-hidden shadow-sm border border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500 mb-1">Other Gender</p>
+              <p className="text-2xl font-bold text-gray-800">
+                {stats.otherGenderCount}{" "}
+                <span className="text-sm font-normal">
+                  ({formatPercentage(stats.otherGenderCount, stats.totalUsers)})
+                </span>
+              </p>
+            </div>
+            <div className="h-12 w-12 rounded-full bg-yellow-100 flex items-center justify-center">
+              <FiUserX className="text-yellow-600 text-xl" />
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div
-        ref={containerRef}
-        className="bg-white rounded-md overflow-hidden shadow-sm border border-gray-200 flex flex-col"
-      >
-        <div className="flex flex-col">
-          {/* Desktop table header - hidden on mobile */}
-          <div className="hidden sm:block w-full">
-            <table className="w-full table-auto">
-              <colgroup>
-                <col style={{ width: "4%" }} />
-                <col style={{ width: "32%" }} />
-                <col style={{ width: "15%" }} />
-                <col style={{ width: "15%" }} />
-                <col style={{ width: "15%" }} />
-                <col style={{ width: "19%" }} />
-              </colgroup>
-              <thead>
-                <tr className="border-b border-gray-200 bg-gray-50 text-sm text-gray-500">
-                  <th className="px-6 py-3 text-left font-medium align-middle">
-                    <input
-                      type="checkbox"
-                      className="rounded"
-                      checked={selectAll}
-                      onChange={toggleSelectAll}
-                    />
-                  </th>
-                  <th className="px-6 py-3 text-left font-medium">User</th>
-                  <th className="px-6 py-3 text-left font-medium">Access</th>
-                  <th className="px-6 py-3 text-left font-medium">
-                    Last active
-                  </th>
-                  <th className="px-6 py-3 text-left font-medium">
-                    Date added
-                  </th>
-                  <th className="px-6 py-3 text-left font-medium">Actions</th>
-                </tr>
-              </thead>
-            </table>
+      {/* Charts and Detailed Stats */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        {/* Age Distribution */}
+        <div className="bg-white rounded-md overflow-hidden shadow-sm border border-gray-200">
+          <div className="border-b border-gray-200 px-4 py-3">
+            <h2 className="text-base font-medium text-gray-800 flex items-center">
+              <FiCalendar className="mr-2" />
+              Age Distribution
+            </h2>
           </div>
-
-          {/* Mobile view bulk select - only shown on small screens */}
-          <div className="sm:hidden flex items-center border-b border-gray-200 p-3">
-            <input
-              type="checkbox"
-              className="rounded mr-3"
-              checked={selectAll}
-              onChange={toggleSelectAll}
-            />
-            <span className="text-sm text-gray-500">
-              {selectAll ? "Deselect all" : "Select all"}
-            </span>
-
-            {/* Mobile batch actions */}
-            {showBatchActions && (
-              <div className="flex ml-auto space-x-2">
-                <button
-                  onClick={handleBatchAddAdmin}
-                  className="p-1 bg-green-600 text-white rounded-md text-sm"
-                  title="Make Admin"
-                >
-                  <FiShield size={16} />
-                </button>
-                <button
-                  onClick={handleBatchRemoveAdmin}
-                  className="p-1 bg-gray-600 text-white rounded-md text-sm"
-                  title="Remove Admin"
-                >
-                  <FiShieldOff size={16} />
-                </button>
-                <button
-                  onClick={handleBatchDelete}
-                  className="p-1 bg-red-600 text-white rounded-md text-sm"
-                  title="Delete"
-                >
-                  <FiTrash2 size={16} />
-                </button>
+          <div className="p-4">
+            <div className="space-y-3">
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span>Under 18</span>
+                  <span>{stats.ageDistribution.under18} people</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                  <div
+                    className="bg-blue-600 h-2.5 rounded-full"
+                    style={{
+                      width: formatPercentage(
+                        stats.ageDistribution.under18,
+                        stats.totalUsers
+                      ),
+                    }}
+                  ></div>
+                </div>
               </div>
+
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span>18-25</span>
+                  <span>{stats.ageDistribution.age18to25} people</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                  <div
+                    className="bg-green-500 h-2.5 rounded-full"
+                    style={{
+                      width: formatPercentage(
+                        stats.ageDistribution.age18to25,
+                        stats.totalUsers
+                      ),
+                    }}
+                  ></div>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span>26-35</span>
+                  <span>{stats.ageDistribution.age26to35} people</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                  <div
+                    className="bg-yellow-500 h-2.5 rounded-full"
+                    style={{
+                      width: formatPercentage(
+                        stats.ageDistribution.age26to35,
+                        stats.totalUsers
+                      ),
+                    }}
+                  ></div>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span>36-45</span>
+                  <span>{stats.ageDistribution.age36to45} people</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                  <div
+                    className="bg-orange-500 h-2.5 rounded-full"
+                    style={{
+                      width: formatPercentage(
+                        stats.ageDistribution.age36to45,
+                        stats.totalUsers
+                      ),
+                    }}
+                  ></div>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span>46-60</span>
+                  <span>{stats.ageDistribution.age46to60} people</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                  <div
+                    className="bg-red-500 h-2.5 rounded-full"
+                    style={{
+                      width: formatPercentage(
+                        stats.ageDistribution.age46to60,
+                        stats.totalUsers
+                      ),
+                    }}
+                  ></div>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span>Over 60</span>
+                  <span>{stats.ageDistribution.over60} people</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                  <div
+                    className="bg-purple-500 h-2.5 rounded-full"
+                    style={{
+                      width: formatPercentage(
+                        stats.ageDistribution.over60,
+                        stats.totalUsers
+                      ),
+                    }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Civil Status Distribution */}
+        <div className="bg-white rounded-md overflow-hidden shadow-sm border border-gray-200">
+          <div className="border-b border-gray-200 px-4 py-3">
+            <h2 className="text-base font-medium text-gray-800 flex items-center">
+              <FiUsers className="mr-2" />
+              Civil Status Distribution
+            </h2>
+          </div>
+          <div className="p-4">
+            <div className="space-y-3">
+              {Object.entries(stats.civilStatusDistribution).map(
+                ([status, count]) => (
+                  <div key={status}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="capitalize">{status}</span>
+                      <span>{count} people</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                      <div
+                        className="bg-black h-2.5 rounded-full"
+                        style={{
+                          width: formatPercentage(count, stats.totalUsers),
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Location Statistics */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        {/* Top Barangays */}
+        <div className="bg-white rounded-md overflow-hidden shadow-sm border border-gray-200">
+          <div className="border-b border-gray-200 px-4 py-3">
+            <h2 className="text-base font-medium text-gray-800 flex items-center">
+              <FiHome className="mr-2" />
+              Top Barangays
+            </h2>
+          </div>
+          <div className="p-4">
+            {stats.topBarangays.length > 0 ? (
+              <div className="space-y-3">
+                {stats.topBarangays.map((item, index) => (
+                  <div key={index}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="font-medium">
+                        Barangay {item.barangay}
+                      </span>
+                      <span>{item.count} residents</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                      <div
+                        className="bg-blue-600 h-2.5 rounded-full"
+                        style={{
+                          width: formatPercentage(item.count, stats.totalUsers),
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-sm">
+                No barangay data available
+              </p>
             )}
           </div>
+        </div>
 
-          {/* Table body */}
-          <div className="overflow-y-auto">
-            {/* Mobile cards view */}
-            <div className="sm:hidden space-y-3 p-4">
-              {paginatedUsers.map(renderMobileUserCard)}
-            </div>
+        {/* Top Cities */}
+        <div className="bg-white rounded-md overflow-hidden shadow-sm border border-gray-200">
+          <div className="border-b border-gray-200 px-4 py-3">
+            <h2 className="text-base font-medium text-gray-800 flex items-center">
+              <FiMap className="mr-2" />
+              Top Cities
+            </h2>
+          </div>
+          <div className="p-4">
+            {stats.topCities.length > 0 ? (
+              <div className="space-y-3">
+                {stats.topCities.map((item, index) => (
+                  <div key={index}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="font-medium">{item.city}</span>
+                      <span>{item.count} residents</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                      <div
+                        className="bg-green-600 h-2.5 rounded-full"
+                        style={{
+                          width: formatPercentage(item.count, stats.totalUsers),
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-sm">No city data available</p>
+            )}
+          </div>
+        </div>
+      </div>
 
-            {/* Desktop table view - hidden on mobile */}
-            <table className="hidden sm:table w-full table-auto">
-              <colgroup>
-                <col style={{ width: "4%" }} />
-                <col style={{ width: "32%" }} />
-                <col style={{ width: "15%" }} />
-                <col style={{ width: "15%" }} />
-                <col style={{ width: "15%" }} />
-                <col style={{ width: "19%" }} />
-              </colgroup>
-              <tbody>
-                {paginatedUsers.map((user) => (
-                  <tr
-                    key={user.id}
-                    className="border-b border-gray-200 hover:bg-gray-50"
-                  >
-                    <td className="px-6 py-4 align-middle">
-                      <input
-                        type="checkbox"
-                        className="rounded"
-                        checked={selectedUsers.includes(user.id)}
-                        onChange={() => toggleSelectUser(user.id)}
-                      />
-                    </td>
-                    <td className="px-6 py-4">
+      {/* Recent Registrations */}
+      <div className="bg-white rounded-md overflow-hidden shadow-sm border border-gray-200">
+        <div className="border-b border-gray-200 px-4 py-3">
+          <h2 className="text-base font-medium text-gray-800 flex items-center">
+            <FiUsers className="mr-2" />
+            Recent Registrations
+          </h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Name
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Gender
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Location
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Date Registered
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {stats.recentRegistrations.map((user, index) => {
+                // Get the full name
+                const fullName = [
+                  user.first_name || "",
+                  user.middle_name ? `${user.middle_name.charAt(0)}.` : "",
+                  user.last_name || "",
+                  user.name_extension || "",
+                ]
+                  .filter(Boolean)
+                  .join(" ");
+
+                // Get location (barangay and city)
+                const location = user.residential_address
+                  ? `${user.residential_address.barangay || ""}, ${
+                      user.residential_address.city || ""
+                    }`
+                  : "Not provided";
+
+                // Format registration date
+                const registrationDate = user.created_at
+                  ? new Date(user.created_at).toLocaleDateString()
+                  : "Unknown";
+
+                return (
+                  <tr key={index}>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center mr-3 overflow-hidden">
-                          <span className="text-white font-medium">
-                            {user.email.charAt(0).toUpperCase()}
+                        <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                          <span className="text-gray-700 font-medium">
+                            {(
+                              user.first_name?.charAt(0) ||
+                              user.email?.charAt(0) ||
+                              ""
+                            ).toUpperCase()}
                           </span>
                         </div>
-                        <div>
-                          <div className="font-medium text-gray-900">
-                            {user.email.split("@")[0]}
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">
+                            {fullName || user.email?.split("@")[0]}
                           </div>
-                          <div className="text-gray-500 text-sm">
+                          <div className="text-sm text-gray-500">
                             {user.email}
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      {user.admin ? (
-                        <div className="flex items-center">
-                          <FiUserCheck className="text-green-500 mr-2" />
-                          <span className="text-green-700">Admin</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center">
-                          <FiUserX className="text-gray-500 mr-2" />
-                          <span className="text-gray-700">User</span>
-                        </div>
-                      )}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm text-gray-900 capitalize">
+                        {user.gender || "Not specified"}
+                      </span>
                     </td>
-                    <td className="px-6 py-4 text-gray-500">Mar 4, 2024</td>
-                    <td className="px-6 py-4 text-gray-500">Jul 4, 2022</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <div style={{ width: "128px" }}>
-                          <button
-                            onClick={() => handleToggleAdmin(user.id)}
-                            disabled={user.id === authState.user?.id}
-                            className={`w-full px-3 py-1 rounded-md text-sm font-medium transition-colors text-center ${
-                              user.id === authState.user?.id
-                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                : user.admin
-                                ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                                : "bg-black text-white hover:bg-gray-800"
-                            }`}
-                          >
-                            {user.admin ? "Remove Admin" : "Make Admin"}
-                          </button>
-                        </div>
-                        <button className="text-gray-400 hover:text-gray-600 p-1 ml-2">
-                          <FiMoreVertical />
-                        </button>
-                      </div>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm text-gray-900">{location}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {registrationDate}
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                );
+              })}
 
-        <div className="flex items-center justify-between px-6 py-3 bg-white border-t border-gray-200 text-sm">
-          <div className="text-gray-500">
-            Showing {indexOfFirstUser + 1}-
-            {Math.min(indexOfLastUser, filteredUsers.length)} of{" "}
-            {filteredUsers.length} users
-            {selectedUsers.length > 0 && ` (${selectedUsers.length} selected)`}
-          </div>
-
-          <div className="flex items-center space-x-1">
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className={`p-1 rounded ${
-                currentPage === 1
-                  ? "text-gray-300 cursor-not-allowed"
-                  : "text-gray-500 hover:bg-gray-100"
-              }`}
-            >
-              <FiChevronLeft />
-            </button>
-
-            <div className="flex space-x-1">
-              {renderPageNumbers().map((page) => (
-                <button
-                  key={page}
-                  onClick={() => handlePageChange(page)}
-                  className={`px-3 py-1 rounded ${
-                    page === currentPage
-                      ? "bg-black text-white"
-                      : "text-gray-500 hover:bg-gray-100"
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className={`p-1 rounded ${
-                currentPage === totalPages
-                  ? "text-gray-300 cursor-not-allowed"
-                  : "text-gray-500 hover:bg-gray-100"
-              }`}
-            >
-              <FiChevronRight />
-            </button>
-          </div>
+              {stats.recentRegistrations.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={4}
+                    className="px-6 py-4 text-center text-sm text-gray-500"
+                  >
+                    No recent registrations
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
