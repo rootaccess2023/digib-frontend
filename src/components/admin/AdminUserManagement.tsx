@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
-import { useAuth, User } from "../../context/AuthContext";
+import { useAuth, User, VerificationStatus } from "../../context/AuthContext";
 import AdminService from "../../services/AdminService";
+import PositionAssignment from "../barangay/PositionAssignment";
+import VerificationStatusComponent from "../barangay/VerificationStatusComponent";
 import {
   FiUsers,
   FiMoreVertical,
@@ -14,6 +16,9 @@ import {
   FiTrash2,
   FiShield,
   FiShieldOff,
+  FiClock,
+  FiHelpCircle,
+  FiCheckCircle,
 } from "react-icons/fi";
 import { showErrorToast, showSuccessToast } from "../../utils/toast";
 
@@ -36,7 +41,9 @@ const AdminUserManagement: React.FC = () => {
 
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [filterType, setFilterType] = useState<"all" | "admin" | "user">("all");
+  const [filterType, setFilterType] = useState<
+    "all" | "admin" | "user" | "verified" | "unverified" | "pending"
+  >("all");
 
   // Show batch actions when users are selected
   useEffect(() => {
@@ -67,14 +74,38 @@ const AdminUserManagement: React.FC = () => {
       // Apply user type filter
       if (filterType === "admin" && !user.admin) return false;
       if (filterType === "user" && user.admin) return false;
+      if (
+        filterType === "verified" &&
+        user.verification_status !== VerificationStatus.VERIFIED
+      )
+        return false;
+      if (
+        filterType === "unverified" &&
+        user.verification_status !== VerificationStatus.UNVERIFIED
+      )
+        return false;
+      if (
+        filterType === "pending" &&
+        user.verification_status !== VerificationStatus.PENDING
+      )
+        return false;
 
       // Apply search term filter
       if (searchTerm.trim() === "") return true;
 
       const searchLower = searchTerm.toLowerCase();
+      const firstNameLower = (user.first_name || "").toLowerCase();
+      const lastNameLower = (user.last_name || "").toLowerCase();
+      const fullName = `${user.first_name || ""} ${
+        user.last_name || ""
+      }`.toLowerCase();
+
       return (
         user.email.toLowerCase().includes(searchLower) ||
-        user.email.split("@")[0].toLowerCase().includes(searchLower)
+        user.email.split("@")[0].toLowerCase().includes(searchLower) ||
+        firstNameLower.includes(searchLower) ||
+        lastNameLower.includes(searchLower) ||
+        fullName.includes(searchLower)
       );
     });
   }, [users, filterType, searchTerm]);
@@ -118,6 +149,13 @@ const AdminUserManagement: React.FC = () => {
         err instanceof Error ? err.message : "Failed to update admin status"
       );
     }
+  };
+
+  // Handle user updates (position assignment, verification status)
+  const handleUserUpdate = (updatedUser: User) => {
+    setUsers(
+      users.map((user) => (user.id === updatedUser.id ? updatedUser : user))
+    );
   };
 
   const handleBatchAddAdmin = async () => {
@@ -267,6 +305,23 @@ const AdminUserManagement: React.FC = () => {
     return pageNumbers;
   };
 
+  // Check if current user can verify accounts
+  const canVerifyAccounts = () => {
+    return authState.user?.admin || authState.user?.can_verify_accounts;
+  };
+
+  // Get full name of user
+  const getFullName = (user: User) => {
+    const nameParts = [
+      user.first_name,
+      user.middle_name ? user.middle_name.charAt(0) + "." : "",
+      user.last_name,
+      user.name_extension,
+    ].filter(Boolean);
+
+    return nameParts.join(" ") || user.email.split("@")[0];
+  };
+
   // Mobile view for each user
   const renderMobileUserCard = (user: User) => (
     <div
@@ -278,12 +333,15 @@ const AdminUserManagement: React.FC = () => {
           <div className="flex items-center">
             <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center mr-3 overflow-hidden">
               <span className="text-white font-medium">
-                {user.email.charAt(0).toUpperCase()}
+                {(user.first_name
+                  ? user.first_name.charAt(0)
+                  : user.email.charAt(0)
+                ).toUpperCase()}
               </span>
             </div>
             <div>
               <div className="font-medium text-gray-900 truncate max-w-xs">
-                {user.email.split("@")[0]}
+                {getFullName(user)}
               </div>
               <div className="text-gray-500 text-sm truncate max-w-xs">
                 {user.email}
@@ -298,9 +356,9 @@ const AdminUserManagement: React.FC = () => {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-2 mb-3">
-          <div className="text-sm">
-            <span className="text-gray-500">Access: </span>
+        <div className="grid grid-cols-1 gap-2 mb-3">
+          <div className="flex justify-between items-center">
+            <span className="text-gray-500 text-sm">Access:</span>
             {user.admin ? (
               <span className="bg-green-50 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
                 Admin
@@ -311,13 +369,23 @@ const AdminUserManagement: React.FC = () => {
               </span>
             )}
           </div>
-          <div className="text-sm text-right">
-            <span className="text-gray-500">Last active: </span>
-            <span>Mar 4, 2024</span>
+
+          <div className="flex justify-between items-center">
+            <span className="text-gray-500 text-sm">Position:</span>
+            <PositionAssignment user={user} onUpdate={handleUserUpdate} />
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-gray-500 text-sm">Verification:</span>
+            <VerificationStatusComponent
+              user={user}
+              canVerify={canVerifyAccounts()}
+              onUpdate={handleUserUpdate}
+            />
           </div>
         </div>
 
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center mt-4">
           <button
             onClick={() => handleToggleAdmin(user.id)}
             disabled={user.id === authState.user?.id}
@@ -431,6 +499,28 @@ const AdminUserManagement: React.FC = () => {
             >
               Regular
             </button>
+            <button
+              onClick={() => setFilterType("verified")}
+              className={`px-4 py-2 rounded-md text-sm transition-colors ${
+                filterType === "verified"
+                  ? "bg-black text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              <FiCheckCircle className="inline mr-1 text-green-500" />
+              Verified
+            </button>
+            <button
+              onClick={() => setFilterType("pending")}
+              className={`px-4 py-2 rounded-md text-sm transition-colors ${
+                filterType === "pending"
+                  ? "bg-black text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              <FiClock className="inline mr-1 text-yellow-500" />
+              Pending
+            </button>
           </div>
         </div>
 
@@ -488,7 +578,7 @@ const AdminUserManagement: React.FC = () => {
         {showFilters && (
           <div className="mt-3 p-4 bg-white border border-gray-200 rounded-md">
             <div className="text-sm mb-2 font-medium">User type</div>
-            <div className="flex space-x-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setFilterType("all")}
                 className={`px-3 py-1 rounded-full text-xs ${
@@ -519,6 +609,28 @@ const AdminUserManagement: React.FC = () => {
               >
                 Regular
               </button>
+              <button
+                onClick={() => setFilterType("verified")}
+                className={`px-3 py-1 rounded-full text-xs ${
+                  filterType === "verified"
+                    ? "bg-black text-white"
+                    : "border border-gray-200 text-gray-700"
+                }`}
+              >
+                <FiCheckCircle className="inline mr-1 text-green-500" />
+                Verified
+              </button>
+              <button
+                onClick={() => setFilterType("pending")}
+                className={`px-3 py-1 rounded-full text-xs ${
+                  filterType === "pending"
+                    ? "bg-black text-white"
+                    : "border border-gray-200 text-gray-700"
+                }`}
+              >
+                <FiClock className="inline mr-1 text-yellow-500" />
+                Pending
+              </button>
             </div>
           </div>
         )}
@@ -534,11 +646,11 @@ const AdminUserManagement: React.FC = () => {
             <table className="w-full table-auto">
               <colgroup>
                 <col style={{ width: "4%" }} />
-                <col style={{ width: "32%" }} />
-                <col style={{ width: "15%" }} />
-                <col style={{ width: "15%" }} />
-                <col style={{ width: "15%" }} />
-                <col style={{ width: "19%" }} />
+                <col style={{ width: "25%" }} />
+                <col style={{ width: "14%" }} />
+                <col style={{ width: "14%" }} />
+                <col style={{ width: "14%" }} />
+                <col style={{ width: "29%" }} />
               </colgroup>
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 text-sm text-gray-500">
@@ -552,11 +664,9 @@ const AdminUserManagement: React.FC = () => {
                   </th>
                   <th className="px-6 py-3 text-left font-medium">User</th>
                   <th className="px-6 py-3 text-left font-medium">Access</th>
+                  <th className="px-6 py-3 text-left font-medium">Position</th>
                   <th className="px-6 py-3 text-left font-medium">
-                    Last active
-                  </th>
-                  <th className="px-6 py-3 text-left font-medium">
-                    Date added
+                    Verification
                   </th>
                   <th className="px-6 py-3 text-left font-medium">Actions</th>
                 </tr>
@@ -615,11 +725,11 @@ const AdminUserManagement: React.FC = () => {
             <table className="hidden sm:table w-full table-auto">
               <colgroup>
                 <col style={{ width: "4%" }} />
-                <col style={{ width: "32%" }} />
-                <col style={{ width: "15%" }} />
-                <col style={{ width: "15%" }} />
-                <col style={{ width: "15%" }} />
-                <col style={{ width: "19%" }} />
+                <col style={{ width: "25%" }} />
+                <col style={{ width: "14%" }} />
+                <col style={{ width: "14%" }} />
+                <col style={{ width: "14%" }} />
+                <col style={{ width: "29%" }} />
               </colgroup>
               <tbody>
                 {paginatedUsers.map((user) => (
@@ -639,12 +749,15 @@ const AdminUserManagement: React.FC = () => {
                       <div className="flex items-center">
                         <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center mr-3 overflow-hidden">
                           <span className="text-white font-medium">
-                            {user.email.charAt(0).toUpperCase()}
+                            {(user.first_name
+                              ? user.first_name.charAt(0)
+                              : user.email.charAt(0)
+                            ).toUpperCase()}
                           </span>
                         </div>
                         <div>
                           <div className="font-medium text-gray-900">
-                            {user.email.split("@")[0]}
+                            {getFullName(user)}
                           </div>
                           <div className="text-gray-500 text-sm">
                             {user.email}
@@ -665,8 +778,19 @@ const AdminUserManagement: React.FC = () => {
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-gray-500">Mar 4, 2024</td>
-                    <td className="px-6 py-4 text-gray-500">Jul 4, 2022</td>
+                    <td className="px-6 py-4">
+                      <PositionAssignment
+                        user={user}
+                        onUpdate={handleUserUpdate}
+                      />
+                    </td>
+                    <td className="px-6 py-4">
+                      <VerificationStatusComponent
+                        user={user}
+                        canVerify={canVerifyAccounts()}
+                        onUpdate={handleUserUpdate}
+                      />
+                    </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center">
                         <div style={{ width: "128px" }}>

@@ -9,6 +9,22 @@ import { AuthState } from "../types/auth";
 import { showSuccessToast } from "../utils/toast";
 
 // Type Declarations
+export enum BarangayPosition {
+  NONE = "none",
+  BARANGAY_CAPTAIN = "barangay_captain",
+  BARANGAY_KAGAWAD = "barangay_kagawad",
+  SK_CHAIRPERSON = "sk_chairperson",
+  BARANGAY_SECRETARY = "barangay_secretary",
+  BARANGAY_TREASURER = "barangay_treasurer",
+}
+
+export enum VerificationStatus {
+  UNVERIFIED = "unverified",
+  PENDING = "pending",
+  VERIFIED = "verified",
+  REJECTED = "rejected",
+}
+
 export interface ResidentialAddress {
   id?: number;
   house_number: string;
@@ -32,6 +48,11 @@ export interface User {
   civil_status?: string;
   mobile_phone?: string;
   residential_address?: ResidentialAddress;
+  barangay_position?: string;
+  verification_status?: string;
+  verified_at?: string;
+  verified_by_id?: number;
+  can_verify_accounts?: boolean;
 }
 
 export interface SignupData {
