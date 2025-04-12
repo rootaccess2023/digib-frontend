@@ -9,11 +9,13 @@ import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import AdminRoute from "./components/auth/AdminRoute";
+import BarangayOfficialRoute from "./components/auth/BarangayOfficialRoute";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import DashboardPage from "./pages/DashboardPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
-import UserManagementPage from "./pages/AdminUserManagementPage"; // Rename this component as needed
+import UserManagementPage from "./pages/AdminUserManagementPage";
+import VerificationManagementPage from "./pages/VerificationManagementPage";
 import MainLayout from "./components/layout/MainLayout";
 
 const App: React.FC = () => {
@@ -41,6 +43,14 @@ const App: React.FC = () => {
             <Route element={<MainLayout />}>
               {/* Dashboard route */}
               <Route path="/dashboard" element={<DashboardPage />} />
+
+              {/* Barangay Official routes */}
+              <Route element={<BarangayOfficialRoute />}>
+                <Route
+                  path="/verification-management"
+                  element={<VerificationManagementPage />}
+                />
+              </Route>
 
               {/* Admin routes */}
               <Route element={<AdminRoute />}>
