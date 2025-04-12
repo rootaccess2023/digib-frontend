@@ -4,7 +4,7 @@ import { FiCheckCircle } from "react-icons/fi";
 
 const VerificationManagementPage: React.FC = () => {
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 pb-6">
+    <div className="w-full max-w-6xl mx-auto pb-6">
       <div className="flex items-center mb-6">
         <FiCheckCircle className="text-2xl mr-3" />
         <h1 className="text-2xl font-bold text-gray-800">

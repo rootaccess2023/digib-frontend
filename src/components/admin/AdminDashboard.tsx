@@ -226,7 +226,7 @@ const AdminDashboard: React.FC = () => {
   }
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 pb-6">
+    <div className="w-full max-w-6xl mx-auto pb-6">
       <div className="flex items-center justify-between mb-4 sm:mb-6">
         <div className="flex items-center">
           <FiPieChart className="text-xl sm:text-2xl mr-2 sm:mr-3" />
