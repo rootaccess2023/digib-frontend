@@ -162,6 +162,21 @@ const MainLayout = () => {
               <span className="text-sm md:text-base">Clearance Requests</span>
             </NavLink>
 
+            <NavLink
+              to="/documents"
+              onClick={closeSidebar}
+              className={({ isActive }) =>
+                `flex items-center space-x-3 px-4 py-2 rounded-md transition-colors ${
+                  isActive
+                    ? "bg-black text-white"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`
+              }
+            >
+              <FiFileText className="text-lg md:text-xl" />
+              <span className="text-sm md:text-base">Document Requests</span>
+            </NavLink>
+
             {/* Barangay Officials Section - only visible to officials */}
             {isBarangayOfficial() && (
               <>
@@ -203,6 +218,21 @@ const MainLayout = () => {
                   <span className="text-sm md:text-base">
                     Manage Clearances
                   </span>
+                </NavLink>
+
+                <NavLink
+                  to="/document-management"
+                  onClick={closeSidebar}
+                  className={({ isActive }) =>
+                    `flex items-center space-x-3 px-4 py-2 rounded-md transition-colors ${
+                      isActive
+                        ? "bg-black text-white"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`
+                  }
+                >
+                  <FiFileText className="text-lg md:text-xl" />
+                  <span className="text-sm md:text-base">Manage Documents</span>
                 </NavLink>
 
                 <NavLink
