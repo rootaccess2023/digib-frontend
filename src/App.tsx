@@ -16,8 +16,6 @@ import DashboardPage from "./pages/DashboardPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import UserManagementPage from "./pages/AdminUserManagementPage";
 import VerificationManagementPage from "./pages/VerificationManagementPage";
-import ClearancePage from "./pages/ClearancePage";
-import ClearanceManagementPage from "./pages/ClearanceManagementPage";
 import DocumentRequestsPage from "./pages/DocumentRequestsPage";
 import DocumentManagementPage from "./pages/DocumentManagementPage";
 import MainLayout from "./components/layout/MainLayout";
@@ -48,9 +46,6 @@ const App: React.FC = () => {
               {/* Dashboard route */}
               <Route path="/dashboard" element={<DashboardPage />} />
 
-              {/* Clearance routes */}
-              <Route path="/clearances" element={<ClearancePage />} />
-
               {/* Document request routes */}
               <Route path="/documents" element={<DocumentRequestsPage />} />
 
@@ -59,10 +54,6 @@ const App: React.FC = () => {
                 <Route
                   path="/verification-management"
                   element={<VerificationManagementPage />}
-                />
-                <Route
-                  path="/clearance-management"
-                  element={<ClearanceManagementPage />}
                 />
                 <Route
                   path="/document-management"
