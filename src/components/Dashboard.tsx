@@ -67,11 +67,6 @@ const Dashboard: React.FC = () => {
     setIsEditing(false);
   };
 
-  // Navigate to clearance request
-  const handleClearanceRequest = () => {
-    navigate("/clearances");
-  };
-
   // Handle user update (for verification request)
   const handleUserUpdate = (updatedUser: typeof user) => {
     // Force a re-render by reloading the page
@@ -184,17 +179,6 @@ const Dashboard: React.FC = () => {
         </div>
 
         <div className="flex space-x-3">
-          {/* Add Request Clearance button */}
-          {user?.verification_status === VerificationStatus.VERIFIED && (
-            <button
-              onClick={handleClearanceRequest}
-              className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-            >
-              <FiFileText className="mr-2" />
-              Request Clearance
-            </button>
-          )}
-
           {/* Edit Profile button */}
           <button
             onClick={handleEditClick}
@@ -226,35 +210,6 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* Clearance Request CTA for unverified users */}
-      {user?.verification_status !== VerificationStatus.VERIFIED &&
-        user?.verification_status !== VerificationStatus.PENDING && (
-          <div className="mb-4 sm:mb-6">
-            <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-              <div className="flex items-start">
-                <FiFileText className="text-blue-500 mt-0.5 mr-3 text-xl flex-shrink-0" />
-                <div>
-                  <h5 className="font-medium mb-2">
-                    Verify your account to request barangay clearances
-                  </h5>
-                  <p className="text-sm text-gray-600 mb-3">
-                    Your account needs to be verified before you can request
-                    barangay clearances. Verification confirms you are a
-                    legitimate resident of the barangay.
-                  </p>
-                  <a
-                    href="/verification-request"
-                    className="inline-flex items-center text-sm font-medium text-blue-700 hover:text-blue-900"
-                  >
-                    <FiCheckCircle className="mr-1.5" />
-                    Request Verification
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
       <div className="bg-white rounded-md overflow-hidden shadow-sm border border-gray-200 mb-4 sm:mb-6">
         <div className="border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4">
